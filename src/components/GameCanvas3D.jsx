@@ -88,11 +88,9 @@ function Character({ character, legs }) {
       cubeRef.current.position.x = character.x;
       cubeRef.current.position.y = -character.y + 300;
       cubeRef.current.position.z = 0;
-      // Cube does NOT rotate!
     }
 
     if (armRef.current) {
-      // Arm rotates around cube center
       armRef.current.rotation.z = character.armRotation || 0;
     }
   });
@@ -101,49 +99,42 @@ function Character({ character, legs }) {
 
   return (
     <group ref={cubeRef}>
-      {/* Character cube - STATIONARY, no rotation */}
-      <mesh castShadow>
+      {/* Character cube - CYAN, STATIONARY */}
+      <mesh castShadow receiveShadow>
         <boxGeometry args={[character.size, character.size, character.size]} />
-        <meshStandardMaterial color="#00d9ff" roughness={0.4} metalness={0.6} />
+        <meshStandardMaterial color="#00d9ff" />
       </mesh>
 
       {/* Rotating arm group */}
       <group ref={armRef}>
-        {/* Arm cylinder from center to tip - positioned along X axis */}
-        <mesh position={[armLength / 2, 0, 5]} rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[4, 4, armLength, 16]} />
-          <meshStandardMaterial color="#ff6600" roughness={0.5} metalness={0.3} emissive="#ff3300" emissiveIntensity={0.2} />
+        {/* Orange arm cylinder */}
+        <mesh position={[armLength / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[3, 3, armLength, 8]} />
+          <meshStandardMaterial color="#ff6600" />
         </mesh>
 
-        {/* Ball at arm tip for visibility */}
-        <mesh position={[armLength, 0, 5]} castShadow>
-          <sphereGeometry args={[6, 16, 16]} />
-          <meshStandardMaterial color="#ff9900" roughness={0.4} metalness={0.4} />
+        {/* Orange ball at arm tip */}
+        <mesh position={[armLength, 0, 0]} castShadow>
+          <sphereGeometry args={[5, 12, 12]} />
+          <meshStandardMaterial color="#ff9900" />
         </mesh>
 
-        {/* Legs attached to arm tip */}
-        {legs && legs.map((leg, i) => {
-          const start = new THREE.Vector3(leg.x1, -leg.y1, 0);
-          const end = new THREE.Vector3(leg.x2, -leg.y2, 0);
-          const direction = new THREE.Vector3().subVectors(end, start);
-          const length = direction.length();
-          const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
-
-          // Calculate rotation to point cylinder from start to end
-          const axis = new THREE.Vector3(0, 1, 0);
-          const quaternion = new THREE.Quaternion().setFromUnitVectors(
-            axis,
-            direction.clone().normalize()
-          );
+        {/* GREEN LEGS attached to arm tip */}
+        {legs && legs.length > 0 && legs.map((leg, i) => {
+          const dx = leg.x2 - leg.x1;
+          const dy = -(leg.y2 - leg.y1); // Flip Y for 3D
+          const length = Math.sqrt(dx * dx + dy * dy);
+          const angle = Math.atan2(dy, dx);
 
           return (
             <mesh
               key={i}
-              position={[midpoint.x, midpoint.y, 5]}
-              quaternion={quaternion}
+              position={[leg.x1, -leg.y1, 0]}
+              rotation={[0, 0, angle - Math.PI / 2]}
+              castShadow
             >
               <cylinderGeometry args={[2, 2, length, 8]} />
-              <meshStandardMaterial color="#00ff88" emissive="#00ff88" emissiveIntensity={0.3} />
+              <meshStandardMaterial color="#00ff00" />
             </mesh>
           );
         })}

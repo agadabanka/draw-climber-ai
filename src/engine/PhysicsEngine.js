@@ -39,10 +39,29 @@ export class PhysicsEngine {
     // Obstacle collisions
     obstacles.forEach(obstacle => {
       if (this.checkObstacleCollision(character, obstacle)) {
-        // Land on top of obstacle
-        if (character.vy > 0 && character.y + halfSize <= obstacle.y + 10) {
+        const halfSize = character.size / 2;
+        const charBottom = character.y + halfSize;
+        const charTop = character.y - halfSize;
+        const charLeft = character.x - halfSize;
+        const charRight = character.x + halfSize;
+
+        // Determine collision side and resolve
+        if (character.vy > 0 && charBottom <= obstacle.y + 20) {
+          // Landing on top
           character.y = obstacle.y - halfSize;
           character.vy = this.bounceVelocity;
+        } else if (character.vy < 0 && charTop >= obstacle.y + obstacle.height - 20) {
+          // Hitting bottom
+          character.y = obstacle.y + obstacle.height + halfSize;
+          character.vy = 0;
+        } else if (charRight > obstacle.x && character.vx > 0) {
+          // Hitting from left
+          character.x = obstacle.x - halfSize;
+          character.vx = 0;
+        } else if (charLeft < obstacle.x + obstacle.width && character.vx < 0) {
+          // Hitting from right
+          character.x = obstacle.x + obstacle.width + halfSize;
+          character.vx = 0;
         }
       }
     });
@@ -53,15 +72,22 @@ export class PhysicsEngine {
   checkObstacleCollision(character, obstacle) {
     const halfSize = character.size / 2;
 
-    // AABB collision detection for cube
-    const closestX = Math.max(obstacle.x, Math.min(character.x, obstacle.x + obstacle.width));
-    const closestY = Math.max(obstacle.y, Math.min(character.y, obstacle.y + obstacle.height));
+    // Proper AABB (box-box) collision detection
+    const charLeft = character.x - halfSize;
+    const charRight = character.x + halfSize;
+    const charTop = character.y - halfSize;
+    const charBottom = character.y + halfSize;
 
-    const distanceX = character.x - closestX;
-    const distanceY = character.y - closestY;
+    const obsLeft = obstacle.x;
+    const obsRight = obstacle.x + obstacle.width;
+    const obsTop = obstacle.y;
+    const obsBottom = obstacle.y + obstacle.height;
 
-    const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
-    return distanceSquared < (halfSize * halfSize);
+    // Check if boxes overlap
+    return charRight > obsLeft &&
+           charLeft < obsRight &&
+           charBottom > obsTop &&
+           charTop < obsBottom;
   }
 
   checkFailure(character) {
