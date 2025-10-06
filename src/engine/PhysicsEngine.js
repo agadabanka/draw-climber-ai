@@ -10,10 +10,10 @@ export class PhysicsEngine {
     // Apply gravity
     character.vy += this.gravity;
 
-    // Apply forward force from rotation (simple model)
-    // Legs rotating creates forward momentum
-    if (character.angularVelocity) {
-      character.vx += character.angularVelocity * 5; // Convert rotation to forward movement
+    // Apply forward force from arm rotation (simple model)
+    // Arm+legs rotating creates forward momentum
+    if (character.armAngularVelocity) {
+      character.vx += character.armAngularVelocity * 5; // Convert rotation to forward movement
     }
 
     // Apply forward force

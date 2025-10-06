@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -30,15 +30,34 @@ function useCheckeredTexture(colors = ['#FF6B35', '#FFD700']) {
 }
 
 function Obstacle({ obstacle }) {
-  const texture = useCheckeredTexture(['#FF6B35', '#FFD700']);
+  const [texture, setTexture] = React.useState(null);
+
+  React.useEffect(() => {
+    // Create texture in useEffect to ensure it's created properly
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+
+    const squareSize = 8;
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        ctx.fillStyle = (i + j) % 2 === 0 ? '#FF6B35' : '#FFD700';
+        ctx.fillRect(i * squareSize, j * squareSize, squareSize, squareSize);
+      }
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(2, 2);
+    setTexture(tex);
+  }, []);
 
   // Convert from screen coords (y-down) to 3D coords (y-up)
-  // Screen: y=0 is top, y=600 is bottom
-  // 3D: y=0 is middle, y=-300 is bottom, y=300 is top
   const x = obstacle.x + obstacle.width / 2;
-  const y = -(obstacle.y + obstacle.height / 2) + 300; // Flip and offset
+  const y = -(obstacle.y + obstacle.height / 2) + 300;
   const z = 0;
-
 
   return (
     <mesh
@@ -47,63 +66,88 @@ function Obstacle({ obstacle }) {
       receiveShadow
     >
       <boxGeometry args={[obstacle.width, obstacle.height, 100]} />
-      <meshStandardMaterial
-        map={texture}
-        roughness={0.7}
-        metalness={0.2}
-      />
+      {texture ? (
+        <meshStandardMaterial
+          map={texture}
+          roughness={0.7}
+          metalness={0.2}
+        />
+      ) : (
+        <meshStandardMaterial color="#FF8C00" roughness={0.7} metalness={0.2} />
+      )}
     </mesh>
   );
 }
 
 function Character({ character, legs }) {
-  const meshRef = useRef();
+  const cubeRef = useRef();
+  const armRef = useRef();
 
   useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.position.x = character.x;
-      // Convert from screen coords to 3D coords
-      meshRef.current.position.y = -character.y + 300;
-      meshRef.current.position.z = 0;
-      // Apply rotation from the character
-      meshRef.current.rotation.z = character.rotation || 0;
+    if (cubeRef.current) {
+      cubeRef.current.position.x = character.x;
+      cubeRef.current.position.y = -character.y + 300;
+      cubeRef.current.position.z = 0;
+      // Cube does NOT rotate!
+    }
+
+    if (armRef.current) {
+      // Arm rotates around cube center
+      armRef.current.rotation.z = character.armRotation || 0;
     }
   });
 
+  const armLength = 40;
+
   return (
-    <group ref={meshRef}>
-      {/* Character cube */}
+    <group ref={cubeRef}>
+      {/* Character cube - STATIONARY, no rotation */}
       <mesh castShadow>
         <boxGeometry args={[character.size, character.size, character.size]} />
         <meshStandardMaterial color="#00d9ff" roughness={0.4} metalness={0.6} />
       </mesh>
 
-      {/* Legs */}
-      {legs && legs.map((leg, i) => {
-        const start = new THREE.Vector3(leg.x1, -leg.y1, 0);
-        const end = new THREE.Vector3(leg.x2, -leg.y2, 0);
-        const direction = new THREE.Vector3().subVectors(end, start);
-        const length = direction.length();
-        const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+      {/* Rotating arm group */}
+      <group ref={armRef}>
+        {/* Arm cylinder from center to tip - positioned along X axis */}
+        <mesh position={[armLength / 2, 0, 5]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[4, 4, armLength, 16]} />
+          <meshStandardMaterial color="#ff6600" roughness={0.5} metalness={0.3} emissive="#ff3300" emissiveIntensity={0.2} />
+        </mesh>
 
-        // Calculate rotation to point cylinder from start to end
-        const axis = new THREE.Vector3(0, 1, 0);
-        const quaternion = new THREE.Quaternion().setFromUnitVectors(
-          axis,
-          direction.clone().normalize()
-        );
+        {/* Ball at arm tip for visibility */}
+        <mesh position={[armLength, 0, 5]} castShadow>
+          <sphereGeometry args={[6, 16, 16]} />
+          <meshStandardMaterial color="#ff9900" roughness={0.4} metalness={0.4} />
+        </mesh>
 
-        return (
-          <mesh
-            key={i}
-            position={[midpoint.x, midpoint.y, midpoint.z]}
-            quaternion={quaternion}
-          >
-            <cylinderGeometry args={[1.5, 1.5, length, 8]} />
-            <meshStandardMaterial color="#00ff88" />
-          </mesh>
-        );
-      })}
+        {/* Legs attached to arm tip */}
+        {legs && legs.map((leg, i) => {
+          const start = new THREE.Vector3(leg.x1, -leg.y1, 0);
+          const end = new THREE.Vector3(leg.x2, -leg.y2, 0);
+          const direction = new THREE.Vector3().subVectors(end, start);
+          const length = direction.length();
+          const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+
+          // Calculate rotation to point cylinder from start to end
+          const axis = new THREE.Vector3(0, 1, 0);
+          const quaternion = new THREE.Quaternion().setFromUnitVectors(
+            axis,
+            direction.clone().normalize()
+          );
+
+          return (
+            <mesh
+              key={i}
+              position={[midpoint.x, midpoint.y, 5]}
+              quaternion={quaternion}
+            >
+              <cylinderGeometry args={[2, 2, length, 8]} />
+              <meshStandardMaterial color="#00ff88" emissive="#00ff88" emissiveIntensity={0.3} />
+            </mesh>
+          );
+        })}
+      </group>
     </group>
   );
 }

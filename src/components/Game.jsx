@@ -64,10 +64,10 @@ export function Game() {
       const tracker = metricsTrackerRef.current;
       const legSystem = legSystemRef.current;
 
-      // Update leg rotation
+      // Update arm rotation
       if (legSystem) {
         legSystem.update(character);
-        setLegs(legSystem.getLegs());
+        setLegs(legSystem.getLegs(character));
       }
 
       // Update physics
@@ -133,7 +133,7 @@ export function Game() {
       const currentGenome = ga.getCurrentGenome();
       const legSystem = new LegSystem(currentGenome);
       legSystemRef.current = legSystem; // Store in ref
-      setLegs(legSystem.getLegs());
+      setLegs(legSystem.getLegs(newCharacter));
 
       // Log
       logger.testing(ga.currentIndex + 1, ga.population.length);
