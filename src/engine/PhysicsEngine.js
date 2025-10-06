@@ -6,18 +6,58 @@ export class PhysicsEngine {
     this.bounceVelocity = -2;
   }
 
-  update(character, obstacles) {
+  update(character, obstacles, legs = []) {
     // Apply gravity
     character.vy += this.gravity;
 
-    // Apply forward force from arm rotation (simple model)
-    // Arm+legs rotating creates forward momentum
-    if (character.armAngularVelocity) {
-      character.vx += character.armAngularVelocity * 5; // Convert rotation to forward movement
+    // Check leg-ground contact and apply forces
+    let groundContact = false;
+    if (legs && legs.length > 0) {
+      legs.forEach(leg => {
+        // Leg positions are RELATIVE to character, convert to world coords
+        const legTipX = character.x + leg.x2;
+        const legTipY = character.y + leg.y2;
+
+        // Ground contact (with more tolerance)
+        if (legTipY >= this.groundY - 10) {
+          groundContact = true;
+
+          // Apply rotational force - legs push cube forward when rotating
+          const pushForce = Math.abs(character.armAngularVelocity) * 10;
+
+          // When leg touches ground and is rotating backward, push cube forward
+          const legVelocityX = -leg.y2 * character.armAngularVelocity; // tangential velocity
+          if (legVelocityX < 0) { // Leg moving backward relative to cube
+            character.vx += pushForce;
+          }
+        }
+
+        // Obstacle contact
+        obstacles.forEach(obstacle => {
+          const obsTop = obstacle.y;
+          const obsLeft = obstacle.x;
+          const obsRight = obstacle.x + obstacle.width;
+
+          // Check if leg tip is touching obstacle top surface
+          if (legTipX >= obsLeft && legTipX <= obsRight &&
+              legTipY >= obsTop - 10 && legTipY <= obsTop + 10) {
+            groundContact = true;
+
+            const pushForce = Math.abs(character.armAngularVelocity) * 10;
+            const legVelocityX = -leg.y2 * character.armAngularVelocity;
+
+            if (legVelocityX < 0) {
+              character.vx += pushForce;
+              // Also push up slightly to help climb
+              character.vy -= pushForce * 0.2;
+            }
+          }
+        });
+      });
     }
 
-    // Apply forward force
-    character.vx += 0.3;
+    // Always apply small forward force to ensure movement
+    character.vx += 0.5;
 
     // Apply friction
     character.vx *= this.friction;
@@ -30,13 +70,13 @@ export class PhysicsEngine {
     // Use half-size for collision (cube)
     const halfSize = character.size / 2;
 
-    // Ground collision
+    // Ground collision for cube body
     if (character.y + halfSize >= this.groundY) {
       character.y = this.groundY - halfSize;
-      character.vy = this.bounceVelocity;
+      character.vy = 0;
     }
 
-    // Obstacle collisions
+    // Obstacle collisions for cube body
     obstacles.forEach(obstacle => {
       if (this.checkObstacleCollision(character, obstacle)) {
         const halfSize = character.size / 2;
@@ -49,7 +89,7 @@ export class PhysicsEngine {
         if (character.vy > 0 && charBottom <= obstacle.y + 20) {
           // Landing on top
           character.y = obstacle.y - halfSize;
-          character.vy = this.bounceVelocity;
+          character.vy = 0;
         } else if (character.vy < 0 && charTop >= obstacle.y + obstacle.height - 20) {
           // Hitting bottom
           character.y = obstacle.y + obstacle.height + halfSize;

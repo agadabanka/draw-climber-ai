@@ -67,12 +67,17 @@ export function Game() {
       // Update arm rotation
       if (legSystem) {
         legSystem.update(character);
-        setLegs(legSystem.getLegs(character));
-      }
+        const currentLegs = legSystem.getLegs(character);
+        setLegs(currentLegs);
 
-      // Update physics
-      const updatedCharacter = physics.update(character, obstacles);
-      setCharacter({ ...updatedCharacter });
+        // Update physics with leg data for ground collision
+        const updatedCharacter = physics.update(character, obstacles, currentLegs);
+        setCharacter({ ...updatedCharacter });
+      } else {
+        // Update physics without leg data
+        const updatedCharacter = physics.update(character, obstacles);
+        setCharacter({ ...updatedCharacter });
+      }
 
       // Check termination conditions
       const timeElapsed = tracker.getElapsedTime();

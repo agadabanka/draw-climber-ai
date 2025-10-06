@@ -113,35 +113,38 @@ function Character({ character, legs }) {
           <meshStandardMaterial color="#ff6600" />
         </mesh>
 
-        {/* Orange balls at both attachment points */}
+        {/* Visible circles on cube sides for leg attachment (WHITE for visibility) */}
         <mesh position={[-armRadius, 0, 0]} castShadow>
-          <sphereGeometry args={[5, 12, 12]} />
-          <meshStandardMaterial color="#ff9900" />
+          <sphereGeometry args={[8, 16, 16]} />
+          <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.3} />
         </mesh>
         <mesh position={[armRadius, 0, 0]} castShadow>
-          <sphereGeometry args={[5, 12, 12]} />
-          <meshStandardMaterial color="#ff9900" />
+          <sphereGeometry args={[8, 16, 16]} />
+          <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.3} />
         </mesh>
 
-        {/* LEGS attached to sides - color coded */}
+        {/* LEGS attached to sides - BROWN color, larger and positioned outside cube */}
         {legs && legs.length > 0 && legs.map((leg, i) => {
+          // Calculate leg position relative to attachment point
+          const attachX = leg.side === 'left' ? -armRadius : armRadius;
           const dx = leg.x2 - leg.x1;
           const dy = -(leg.y2 - leg.y1); // Flip Y for 3D
           const length = Math.sqrt(dx * dx + dy * dy);
           const angle = Math.atan2(dy, dx);
 
-          // Left legs are green, right legs are cyan
-          const color = leg.side === 'left' ? '#00ff00' : '#00ffff';
+          // Position leg starting from attachment point, extending outward
+          const legCenterX = attachX + (dx / 2);
+          const legCenterY = -(dy / 2);
 
           return (
             <mesh
               key={i}
-              position={[leg.x1, -leg.y1, 0]}
+              position={[legCenterX, legCenterY, 0]}
               rotation={[0, 0, angle - Math.PI / 2]}
               castShadow
             >
-              <cylinderGeometry args={[2, 2, length, 8]} />
-              <meshStandardMaterial color={color} />
+              <cylinderGeometry args={[4, 4, length, 8]} />
+              <meshStandardMaterial color="#8B4513" />
             </mesh>
           );
         })}
