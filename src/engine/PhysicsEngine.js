@@ -18,16 +18,18 @@ export class PhysicsEngine {
         const legTipX = character.x + leg.x2;
         const legTipY = character.y + leg.y2;
 
-        // Ground contact (with more tolerance)
-        if (legTipY >= this.groundY - 10) {
+        // Ground contact (increased tolerance)
+        if (legTipY >= this.groundY - 15) {
           groundContact = true;
 
-          // Apply rotational force - legs push cube forward when rotating
-          const pushForce = Math.abs(character.armAngularVelocity) * 10;
+          // Calculate tangential velocity of leg tip (how fast it's moving horizontally)
+          // For a rotating point: v = r × ω (velocity = radius × angular velocity)
+          const legTipVelocityX = -leg.y2 * character.armAngularVelocity;
+          const legTipVelocityY = leg.x2 * character.armAngularVelocity;
 
-          // When leg touches ground and is rotating backward, push cube forward
-          const legVelocityX = -leg.y2 * character.armAngularVelocity; // tangential velocity
-          if (legVelocityX < 0) { // Leg moving backward relative to cube
+          // When leg tip is moving backward relative to ground (pushing), cube moves forward
+          if (legTipVelocityX < 0) {
+            const pushForce = Math.abs(legTipVelocityX) * 20;
             character.vx += pushForce;
           }
         }
@@ -40,24 +42,24 @@ export class PhysicsEngine {
 
           // Check if leg tip is touching obstacle top surface
           if (legTipX >= obsLeft && legTipX <= obsRight &&
-              legTipY >= obsTop - 10 && legTipY <= obsTop + 10) {
+              legTipY >= obsTop - 15 && legTipY <= obsTop + 15) {
             groundContact = true;
 
-            const pushForce = Math.abs(character.armAngularVelocity) * 10;
-            const legVelocityX = -leg.y2 * character.armAngularVelocity;
+            const legTipVelocityX = -leg.y2 * character.armAngularVelocity;
 
-            if (legVelocityX < 0) {
+            if (legTipVelocityX < 0) {
+              const pushForce = Math.abs(legTipVelocityX) * 20;
               character.vx += pushForce;
-              // Also push up slightly to help climb
-              character.vy -= pushForce * 0.2;
+              // Push up to help climb
+              character.vy -= pushForce * 0.4;
             }
           }
         });
       });
     }
 
-    // Always apply small forward force to ensure movement
-    character.vx += 0.5;
+    // Base forward movement (always active)
+    character.vx += 1.0;
 
     // Apply friction
     character.vx *= this.friction;

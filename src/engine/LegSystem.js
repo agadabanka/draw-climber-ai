@@ -1,7 +1,7 @@
 export class LegSystem {
   constructor(genome) {
     this.genome = genome;
-    this.armRadius = 15; // Distance from cube center to side attachment point
+    this.attachmentOffset = 15; // Distance below cube center for leg attachment
   }
 
   update(character) {
@@ -10,24 +10,24 @@ export class LegSystem {
     character.armAngularVelocity = this.genome.rotationSpeed;
   }
 
-  // Get attachment points on opposite sides of the cube
+  // Get attachment points at bottom of cube (left and right)
   getAttachmentPoints(character) {
-    const cos = Math.cos(character.armRotation);
-    const sin = Math.sin(character.armRotation);
+    const halfSize = character.size / 2;
+    const bottomY = halfSize; // Bottom of cube
 
     return {
       left: {
-        x: -this.armRadius * cos,
-        y: -this.armRadius * sin
+        x: -8,  // Left side of bottom
+        y: bottomY
       },
       right: {
-        x: this.armRadius * cos,
-        y: this.armRadius * sin
+        x: 8,   // Right side of bottom
+        y: bottomY
       }
     };
   }
 
-  // Get legs attached to each side
+  // Get legs attached at bottom of cube
   getLegs(character) {
     const attachments = this.getAttachmentPoints(character);
     const cos = Math.cos(character.armRotation);
@@ -36,7 +36,7 @@ export class LegSystem {
     const legs = [];
 
     // Create legs from genome points
-    // Left leg (attached to left side of cube)
+    // Left leg (attached to left bottom of cube)
     if (this.genome.points && this.genome.points.length >= 2) {
       for (let i = 0; i < this.genome.points.length - 1; i++) {
         const p1 = this.genome.points[i];
@@ -52,7 +52,7 @@ export class LegSystem {
       }
     }
 
-    // Right leg (attached to right side of cube, mirrored)
+    // Right leg (attached to right bottom of cube, mirrored)
     if (this.genome.points && this.genome.points.length >= 2) {
       for (let i = 0; i < this.genome.points.length - 1; i++) {
         const p1 = this.genome.points[i];

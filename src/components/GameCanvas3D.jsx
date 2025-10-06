@@ -95,7 +95,7 @@ function Character({ character, legs }) {
     }
   });
 
-  const armRadius = 15;
+  const halfSize = character.size / 2;
 
   return (
     <group ref={cubeRef}>
@@ -105,36 +105,28 @@ function Character({ character, legs }) {
         <meshStandardMaterial color="#00d9ff" />
       </mesh>
 
-      {/* Rotating arm group */}
+      {/* Rotating leg group */}
       <group ref={armRef}>
-        {/* Orange arm connecting opposite sides */}
-        <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[3, 3, armRadius * 2, 8]} />
-          <meshStandardMaterial color="#ff6600" />
+        {/* Attachment points at BOTTOM of cube (WHITE circles) */}
+        <mesh position={[-8, -halfSize, 0]} castShadow>
+          <sphereGeometry args={[6, 16, 16]} />
+          <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.4} />
+        </mesh>
+        <mesh position={[8, -halfSize, 0]} castShadow>
+          <sphereGeometry args={[6, 16, 16]} />
+          <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.4} />
         </mesh>
 
-        {/* Visible circles on cube sides for leg attachment (WHITE for visibility) */}
-        <mesh position={[-armRadius, 0, 0]} castShadow>
-          <sphereGeometry args={[8, 16, 16]} />
-          <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.3} />
-        </mesh>
-        <mesh position={[armRadius, 0, 0]} castShadow>
-          <sphereGeometry args={[8, 16, 16]} />
-          <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.3} />
-        </mesh>
-
-        {/* LEGS attached to sides - BROWN color, larger and positioned outside cube */}
+        {/* LEGS attached to bottom - BROWN color, thicker for visibility */}
         {legs && legs.length > 0 && legs.map((leg, i) => {
-          // Calculate leg position relative to attachment point
-          const attachX = leg.side === 'left' ? -armRadius : armRadius;
           const dx = leg.x2 - leg.x1;
           const dy = -(leg.y2 - leg.y1); // Flip Y for 3D
           const length = Math.sqrt(dx * dx + dy * dy);
           const angle = Math.atan2(dy, dx);
 
-          // Position leg starting from attachment point, extending outward
-          const legCenterX = attachX + (dx / 2);
-          const legCenterY = -(dy / 2);
+          // Position leg segments
+          const legCenterX = leg.x1 + (dx / 2);
+          const legCenterY = -(leg.y1 + (leg.y2 - leg.y1) / 2);
 
           return (
             <mesh
@@ -143,8 +135,12 @@ function Character({ character, legs }) {
               rotation={[0, 0, angle - Math.PI / 2]}
               castShadow
             >
-              <cylinderGeometry args={[4, 4, length, 8]} />
-              <meshStandardMaterial color="#8B4513" />
+              <cylinderGeometry args={[5, 5, length, 8]} />
+              <meshStandardMaterial
+                color="#8B4513"
+                emissive="#8B4513"
+                emissiveIntensity={0.1}
+              />
             </mesh>
           );
         })}
