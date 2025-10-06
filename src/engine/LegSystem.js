@@ -1,26 +1,7 @@
 export class LegSystem {
   constructor(genome) {
     this.genome = genome;
-    this.legs = this.createLegs(genome);
-    this.armLength = 40; // Length of the arm from cube center to arm tip
-  }
-
-  createLegs(genome) {
-    if (!genome || !genome.points || genome.points.length < 2) {
-      return [];
-    }
-
-    const legs = [];
-    for (let i = 0; i < genome.points.length - 1; i++) {
-      legs.push({
-        x1: genome.points[i].x,
-        y1: genome.points[i].y,
-        x2: genome.points[i + 1].x,
-        y2: genome.points[i + 1].y
-      });
-    }
-
-    return legs;
+    this.armRadius = 15; // Distance from cube center to side attachment point
   }
 
   update(character) {
@@ -29,55 +10,78 @@ export class LegSystem {
     character.armAngularVelocity = this.genome.rotationSpeed;
   }
 
-  getArmPosition(character) {
-    // Arm tip position relative to character center
+  // Get attachment points on opposite sides of the cube
+  getAttachmentPoints(character) {
+    const cos = Math.cos(character.armRotation);
+    const sin = Math.sin(character.armRotation);
+
     return {
-      x: Math.cos(character.armRotation) * this.armLength,
-      y: Math.sin(character.armRotation) * this.armLength
+      left: {
+        x: -this.armRadius * cos,
+        y: -this.armRadius * sin
+      },
+      right: {
+        x: this.armRadius * cos,
+        y: this.armRadius * sin
+      }
     };
   }
 
-  getRotatedLegs(character) {
-    // Get arm tip position
-    const armTip = this.getArmPosition(character);
-
-    // Legs are attached to the arm tip and rotate with it
-    return this.legs.map(leg => {
-      const cos = Math.cos(character.armRotation);
-      const sin = Math.sin(character.armRotation);
-
-      return {
-        // Leg start point is at arm tip
-        x1: armTip.x + (leg.x1 * cos - leg.y1 * sin),
-        y1: armTip.y + (leg.x1 * sin + leg.y1 * cos),
-        // Leg end point is relative to arm tip
-        x2: armTip.x + (leg.x2 * cos - leg.y2 * sin),
-        y2: armTip.y + (leg.x2 * sin + leg.y2 * cos)
-      };
-    });
-  }
-
+  // Get legs attached to each side
   getLegs(character) {
-    return this.getRotatedLegs(character);
+    const attachments = this.getAttachmentPoints(character);
+    const cos = Math.cos(character.armRotation);
+    const sin = Math.sin(character.armRotation);
+
+    const legs = [];
+
+    // Create legs from genome points
+    // Left leg (attached to left side of cube)
+    if (this.genome.points && this.genome.points.length >= 2) {
+      for (let i = 0; i < this.genome.points.length - 1; i++) {
+        const p1 = this.genome.points[i];
+        const p2 = this.genome.points[i + 1];
+
+        // Rotate points relative to arm rotation
+        const x1 = attachments.left.x + (p1.x * cos - p1.y * sin);
+        const y1 = attachments.left.y + (p1.x * sin + p1.y * cos);
+        const x2 = attachments.left.x + (p2.x * cos - p2.y * sin);
+        const y2 = attachments.left.y + (p2.x * sin + p2.y * cos);
+
+        legs.push({ x1, y1, x2, y2, side: 'left' });
+      }
+    }
+
+    // Right leg (attached to right side of cube, mirrored)
+    if (this.genome.points && this.genome.points.length >= 2) {
+      for (let i = 0; i < this.genome.points.length - 1; i++) {
+        const p1 = this.genome.points[i];
+        const p2 = this.genome.points[i + 1];
+
+        // Mirror the leg on the right side
+        const x1 = attachments.right.x + (-p1.x * cos - p1.y * sin);
+        const y1 = attachments.right.y + (-p1.x * sin + p1.y * cos);
+        const x2 = attachments.right.x + (-p2.x * cos - p2.y * sin);
+        const y2 = attachments.right.y + (-p2.x * sin + p2.y * cos);
+
+        legs.push({ x1, y1, x2, y2, side: 'right' });
+      }
+    }
+
+    return legs;
   }
 
   getArmEndpoints(character) {
-    const armTip = this.getArmPosition(character);
+    const attachments = this.getAttachmentPoints(character);
     return {
-      start: { x: 0, y: 0 }, // Arm starts at cube center
-      end: armTip // Arm ends at tip
+      start: attachments.left,
+      end: attachments.right
     };
   }
 
   // Leg physics - legs push against ground/obstacles
   applyForces(character, physics) {
-    const rotatedLegs = this.getRotatedLegs(character);
-
-    // For each leg endpoint, check if it's touching ground/obstacles
-    // If touching, apply force perpendicular to the leg
-    // This creates the "walking" motion
-
-    // TODO: Implement full leg physics
+    // TODO: Implement leg ground contact and force application
     return character;
   }
 }

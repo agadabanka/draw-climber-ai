@@ -95,7 +95,7 @@ function Character({ character, legs }) {
     }
   });
 
-  const armLength = 40;
+  const armRadius = 15;
 
   return (
     <group ref={cubeRef}>
@@ -107,24 +107,31 @@ function Character({ character, legs }) {
 
       {/* Rotating arm group */}
       <group ref={armRef}>
-        {/* Orange arm cylinder */}
-        <mesh position={[armLength / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[3, 3, armLength, 8]} />
+        {/* Orange arm connecting opposite sides */}
+        <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[3, 3, armRadius * 2, 8]} />
           <meshStandardMaterial color="#ff6600" />
         </mesh>
 
-        {/* Orange ball at arm tip */}
-        <mesh position={[armLength, 0, 0]} castShadow>
+        {/* Orange balls at both attachment points */}
+        <mesh position={[-armRadius, 0, 0]} castShadow>
+          <sphereGeometry args={[5, 12, 12]} />
+          <meshStandardMaterial color="#ff9900" />
+        </mesh>
+        <mesh position={[armRadius, 0, 0]} castShadow>
           <sphereGeometry args={[5, 12, 12]} />
           <meshStandardMaterial color="#ff9900" />
         </mesh>
 
-        {/* GREEN LEGS attached to arm tip */}
+        {/* LEGS attached to sides - color coded */}
         {legs && legs.length > 0 && legs.map((leg, i) => {
           const dx = leg.x2 - leg.x1;
           const dy = -(leg.y2 - leg.y1); // Flip Y for 3D
           const length = Math.sqrt(dx * dx + dy * dy);
           const angle = Math.atan2(dy, dx);
+
+          // Left legs are green, right legs are cyan
+          const color = leg.side === 'left' ? '#00ff00' : '#00ffff';
 
           return (
             <mesh
@@ -134,7 +141,7 @@ function Character({ character, legs }) {
               castShadow
             >
               <cylinderGeometry args={[2, 2, length, 8]} />
-              <meshStandardMaterial color="#00ff00" />
+              <meshStandardMaterial color={color} />
             </mesh>
           );
         })}
